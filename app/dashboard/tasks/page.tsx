@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Clock, CheckCircle2, Circle, Loader2, X, Check } from "lucide-react";
+import { Plus, Clock, CheckCircle2, Circle, Loader2, X, Check, User } from "lucide-react";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -11,6 +11,10 @@ export default function TasksPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // --- NEW STATES FOR ASSIGNMENT ---
+  const [users, setUsers] = useState<any[]>([]);
+  const [assigneeId, setAssigneeId] = useState("");
+
   const fetchTasks = async () => {
     try {
       const res = await fetch("/api/tasks");
@@ -18,6 +22,15 @@ export default function TasksPage() {
       if (Array.isArray(data)) setTasks(data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
+  };
+
+  // --- FETCH USERS FOR DROPDOWN ---
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      if (Array.isArray(data)) setUsers(data);
+    } catch (err) { console.error(err); }
   };
 
   const toggleTaskStatus = async (id: string, currentStatus: string) => {
@@ -29,14 +42,17 @@ export default function TasksPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
-        await fetchTasks(); // Update ke baad list refresh hogi
+        await fetchTasks();
       }
     } catch (err) {
       console.error("Update failed:", err);
     }
   };
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => { 
+    fetchTasks(); 
+    fetchUsers(); // Load users on mount
+  }, []);
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,11 +63,16 @@ export default function TasksPage() {
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTaskTitle }),
+        // --- SENDING ASSIGNEE ID TO BACKEND ---
+        body: JSON.stringify({ 
+          title: newTaskTitle,
+          assigneeId: assigneeId || null 
+        }),
       });
       
       if (res.ok) {
         setNewTaskTitle("");
+        setAssigneeId(""); // Reset selection
         setShowModal(false);
         setShowSuccess(true);
         await fetchTasks();
@@ -94,17 +115,41 @@ export default function TasksPage() {
               <button onClick={() => setShowModal(false)}><X className="h-5 w-5 text-gray-400" /></button>
             </div>
             <form onSubmit={handleCreateTask} className="space-y-4">
-              <input 
-                autoFocus
-                className="w-full bg-white/5 border border-white/10 rounded-lg p-3 outline-none focus:ring-2 focus:ring-cyan-500 text-white"
-                placeholder="What needs to be done?"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-              />
+              <div>
+                <label className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-2 block">Task Title</label>
+                <input 
+                  autoFocus
+                  className="w-full bg-white/5 border border-white/10 rounded-lg p-3 outline-none focus:ring-2 focus:ring-cyan-500 text-white"
+                  placeholder="What needs to be done?"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                />
+              </div>
+
+              {/* --- DROPDOWN FOR ASSIGNMENT --- */}
+              <div>
+                <label className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-2 block">Assign To Member</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                  <select 
+                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 pl-10 outline-none focus:ring-2 focus:ring-cyan-500 text-white appearance-none cursor-pointer"
+                    value={assigneeId}
+                    onChange={(e) => setAssigneeId(e.target.value)}
+                  >
+                    <option value="" className="bg-[#121212]">Assign to me (default)</option>
+                    {users.map((user: any) => (
+                      <option key={user.id} value={user.id} className="bg-[#121212]">
+                        {user.name} ({user.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-lg font-bold text-white flex items-center justify-center gap-2"
+                className="w-full py-3 mt-4 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-lg font-bold text-white flex items-center justify-center gap-2"
               >
                 {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Add Task"}
               </button>
@@ -113,6 +158,7 @@ export default function TasksPage() {
         </div>
       )}
 
+      {/* Task List Section */}
       <div className="space-y-4">
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-cyan-400" /></div>
@@ -122,7 +168,6 @@ export default function TasksPage() {
           tasks.map((task: any) => (
             <div key={task.id} className="p-5 rounded-xl bg-white/5 border border-white/10 flex justify-between items-center group hover:border-cyan-500/50 transition-all">
               <div className="flex items-center gap-4">
-                {/* Clickable Button */}
                 <button 
                   onClick={() => toggleTaskStatus(task.id, task.status)}
                   className="cursor-pointer hover:scale-110 transition-transform outline-none"
@@ -134,11 +179,17 @@ export default function TasksPage() {
                   )}
                 </button>
                 
-                <span className={`text-lg transition-all ${
-                  task.status === "DONE" ? "text-gray-500 line-through" : "text-white"
-                }`}>
-                  {task.title}
-                </span>
+                <div className="flex flex-col">
+                  <span className={`text-lg transition-all ${
+                    task.status === "DONE" ? "text-gray-500 line-through" : "text-white"
+                  }`}>
+                    {task.title}
+                  </span>
+                  {/* Show who it is assigned to */}
+                  <span className="text-[10px] text-gray-500 uppercase tracking-tighter">
+                    Assignee: {task.assignee?.name || "Self"}
+                  </span>
+                </div>
               </div>
               
               <div className="flex items-center gap-4">
@@ -157,6 +208,3 @@ export default function TasksPage() {
     </div>
   );
 }
-
-
-

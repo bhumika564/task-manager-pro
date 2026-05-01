@@ -1,11 +1,15 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/app/lib/db";
+import { NextResponse } from "next/server";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+export const dynamic = 'force-dynamic'; 
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: ["query"],
-  });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+export async function GET() {
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, name: true, role: true }
+    });
+    return NextResponse.json(users);
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
+  }
+}

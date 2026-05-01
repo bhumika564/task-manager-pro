@@ -137,11 +137,14 @@ export default function TasksPage() {
                     onChange={(e) => setAssigneeId(e.target.value)}
                   >
                     <option value="" className="bg-[#121212]">Assign to me (default)</option>
-                    {users.map((user: any) => (
-                      <option key={user.id} value={user.id} className="bg-[#121212]">
-                        {user.name} ({user.role})
-                      </option>
-                    ))}
+                    {users.map((user: any) => {
+                      const userId = user.id || user._id; // Supports both SQL and MongoDB
+                      return (
+                        <option key={userId} value={userId} className="bg-[#121212]">
+                          {user.name || user.username} ({user.role || 'Member'})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
@@ -165,44 +168,49 @@ export default function TasksPage() {
         ) : tasks.length === 0 ? (
           <div className="text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-2xl">No tasks yet.</div>
         ) : (
-          tasks.map((task: any) => (
-            <div key={task.id} className="p-5 rounded-xl bg-white/5 border border-white/10 flex justify-between items-center group hover:border-cyan-500/50 transition-all">
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => toggleTaskStatus(task.id, task.status)}
-                  className="cursor-pointer hover:scale-110 transition-transform outline-none"
-                >
-                  {task.status === "DONE" ? (
-                    <CheckCircle2 className="h-6 w-6 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)]" />
-                  ) : (
-                    <Circle className="h-6 w-6 text-gray-500 group-hover:text-cyan-400 transition-colors" />
-                  )}
-                </button>
+          tasks.map((task: any) => {
+            const taskId = task.id || task._id; // Safety check for ID
+            const taskTitle = task.title || task.name || "Untitled Task"; // Safety check for Title
+            const taskStatus = task.status || "TODO"; // Default status if undefined
+            
+            return (
+              <div key={taskId} className="p-5 rounded-xl bg-white/5 border border-white/10 flex justify-between items-center group hover:border-cyan-500/50 transition-all">
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => toggleTaskStatus(taskId, taskStatus)}
+                    className="cursor-pointer hover:scale-110 transition-transform outline-none"
+                  >
+                    {taskStatus === "DONE" ? (
+                      <CheckCircle2 className="h-6 w-6 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)]" />
+                    ) : (
+                      <Circle className="h-6 w-6 text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                    )}
+                  </button>
+                  
+                  <div className="flex flex-col">
+                    <span className={`text-lg transition-all ${
+                      taskStatus === "DONE" ? "text-gray-500 line-through" : "text-white"
+                    }`}>
+                      {taskTitle}
+                    </span>
+                    <span className="text-[10px] text-gray-500 uppercase tracking-tighter">
+                      Assignee: {task.assignee?.name || task.assignee?.username || "Self"}
+                    </span>
+                  </div>
+                </div>
                 
-                <div className="flex flex-col">
-                  <span className={`text-lg transition-all ${
-                    task.status === "DONE" ? "text-gray-500 line-through" : "text-white"
+                <div className="flex items-center gap-4">
+                  <span className={`px-3 py-1 rounded-full text-xs border uppercase tracking-wider font-bold ${
+                    taskStatus === "DONE" 
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                      : "bg-indigo-500/10 text-indigo-300 border-indigo-500/20"
                   }`}>
-                    {task.title}
-                  </span>
-                  {/* Show who it is assigned to */}
-                  <span className="text-[10px] text-gray-500 uppercase tracking-tighter">
-                    Assignee: {task.assignee?.name || "Self"}
+                    {taskStatus}
                   </span>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-4">
-                <span className={`px-3 py-1 rounded-full text-xs border uppercase tracking-wider font-bold ${
-                  task.status === "DONE" 
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                    : "bg-indigo-500/10 text-indigo-300 border-indigo-500/20"
-                }`}>
-                  {task.status}
-                </span>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

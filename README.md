@@ -9,11 +9,11 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
 ---
-## 🌐 **Go to Website**
+## 🌐 Go to Website
 
-Click here to access the live application(Railway Link): **[Task Manager Pro Live](fantastic-nurturing-production-5ac3.up.railway.app)**
+Click here to access the live application (Railway Link): **[Task Manager Pro Live](https://fantastic-nurturing-production-5ac3.up.railway.app)**
 
-Click here to access the live application(Vercel Link}: **[Task Manager Pro Live](task-manager-pro-xv48.vercel.app)**
+Click here to access the live application (Vercel Link): **[Task Manager Pro Live](https://task-manager-pro-xv48.vercel.app)**
 
 ---
 
